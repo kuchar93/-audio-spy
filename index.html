@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC Audio Spy</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #0f0;
+      padding: 2em;
+    }
+    textarea, button {
+      width: 100%;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎙️ WebRTC Podsłuch Audio</h1>
+  <p>Ustaw jedno urządzenie jako "Nadawca", drugie jako "Odbiorca". Skopiuj/klej dane SDP.</p>
+
+  <button onclick="startMic()">🎤 Start mikrofonu (Nadawca)</button>
+  <textarea id="offer" placeholder="Tu pojawi się OFFER (do skopiowania)"></textarea>
+  <button onclick="copyOffer()">📋 Kopiuj OFFER</button>
+  <textarea id="answer" placeholder="Wklej tu ANSWER z drugiego urządzenia"></textarea>
+  <button onclick="setRemoteAnswer()">🔁 Ustaw ANSWER</button>
+
+  <hr>
+
+  <textarea id="remoteOffer" placeholder="Wklej tu OFFER od Nadawcy"></textarea>
+  <button onclick="setRemoteOffer()">📡 Ustaw OFFER (Odbiorca)</button>
+  <textarea id="localAnswer" placeholder="Tu pojawi się twój ANSWER"></textarea>
+  <button onclick="copyAnswer()">📋 Kopiuj ANSWER</button>
+
+  <audio id="remoteAudio" autoplay></audio>
+
+  <script>
+    let pc = new RTCPeerConnection();
+
+    pc.ontrack = (e) => {
+      document.getElementById('remoteAudio').srcObject = e.streams[0];
+    };
+
+    async function startMic() {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      document.getElementById('offer').value = JSON.stringify(offer);
+    }
+
+    async function setRemoteAnswer() {
+      const answer = JSON.parse(document.getElementById('answer').value);
+      await pc.setRemoteDescription(new RTCSessionDescription(answer));
+      alert('✅ ANSWER ustawiony');
+    }
+
+    async function setRemoteOffer() {
+      const offer = JSON.parse(document.getElementById('remoteOffer').value);
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      document.getElementById('localAnswer').value = JSON.stringify(answer);
+    }
+
+    function copyOffer() {
+      navigator.clipboard.writeText(document.getElementById('offer').value);
+    }
+
+    function copyAnswer() {
+      navigator.clipboard.writeText(document.getElementById('localAnswer').value);
+    }
+  </script>
+</body>
+</html>
